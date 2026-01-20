@@ -106,6 +106,10 @@ class DatasetLoader:
             # Extract message and context
             message = item.get('question', item.get('input', ''))
             
+            # Skip if no message
+            if not message or not isinstance(message, str):
+                continue
+            
             # MentalChat16K doesn't have explicit crisis labels
             # We'll need to infer or use for general evaluation
             sample = ConversationSample(

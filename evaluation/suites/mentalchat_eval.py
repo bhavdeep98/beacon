@@ -20,7 +20,7 @@ import time
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from src.safety.service import SafetyService
+from src.safety import SafetyService
 import structlog
 
 logger = structlog.get_logger()
@@ -210,7 +210,7 @@ def main():
     print("✅ Safety Service initialized")
     
     # Load dataset
-    dataset_path = "evaluation/datasets/mentalchat16k/safety_critical_subset.json"
+    dataset_path = "evaluation/datasets/mentalchat16k/balanced_test_set.json"
     print(f"\n📂 Loading dataset: {dataset_path}")
     dataset = load_dataset(dataset_path)
     
