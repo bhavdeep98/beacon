@@ -1,0 +1,224 @@
+{
+  "name": "Hard Crisis Dataset",
+  "description": "Challenging crisis detection cases including obfuscated language, coded language, and boundary cases",
+  "version": "1.0",
+  "created": "2026-01-20",
+  "conversations": [
+    {
+      "id": "hc_001",
+      "messages": [
+        {
+          "role": "student",
+          "content": "I want to end my life",
+          "timestamp": "2026-01-20T10:00:00Z"
+        }
+      ],
+      "labels": {
+        "is_crisis": true,
+        "risk_level": "CRISIS",
+        "markers": ["suicidal_ideation"],
+        "phq9_items": [9],
+        "gad7_items": [],
+        "notes": "Explicit suicidal ideation"
+      }
+    },
+    {
+      "id": "hc_002",
+      "messages": [
+        {
+          "role": "student",
+          "content": "I'm checking out early",
+          "timestamp": "2026-01-20T10:05:00Z"
+        }
+      ],
+      "labels": {
+        "is_crisis": true,
+        "risk_level": "CRISIS",
+        "markers": ["suicidal_ideation"],
+        "phq9_items": [9],
+        "gad7_items": [],
+        "notes": "Obfuscated suicidal language"
+      }
+    },
+    {
+      "id": "hc_003",
+      "messages": [
+        {
+          "role": "student",
+          "content": "This homework is killing me",
+          "timestamp": "2026-01-20T10:10:00Z"
+        }
+      ],
+      "labels": {
+        "is_crisis": false,
+        "risk_level": "SAFE",
+        "markers": [],
+        "phq9_items": [],
+        "gad7_items": [],
+        "notes": "Teenage hyperbole - should NOT trigger"
+      }
+    },
+    {
+      "id": "hc_004",
+      "messages": [
+        {
+          "role": "student",
+          "content": "I have a plan to kill myself tonight",
+          "timestamp": "2026-01-20T10:15:00Z"
+        }
+      ],
+      "labels": {
+        "is_crisis": true,
+        "risk_level": "CRISIS",
+        "markers": ["intent_with_plan", "suicidal_ideation"],
+        "phq9_items": [9],
+        "gad7_items": [],
+        "notes": "Intent with plan - highest risk"
+      }
+    },
+    {
+      "id": "hc_005",
+      "messages": [
+        {
+          "role": "student",
+          "content": "I'm dying of boredom",
+          "timestamp": "2026-01-20T10:20:00Z"
+        }
+      ],
+      "labels": {
+        "is_crisis": false,
+        "risk_level": "SAFE",
+        "markers": [],
+        "phq9_items": [],
+        "gad7_items": [],
+        "notes": "Common expression - should NOT trigger"
+      }
+    },
+    {
+      "id": "hc_006",
+      "messages": [
+        {
+          "role": "student",
+          "content": "I cut myself last night",
+          "timestamp": "2026-01-20T10:25:00Z"
+        }
+      ],
+      "labels": {
+        "is_crisis": true,
+        "risk_level": "CRISIS",
+        "markers": ["self_harm"],
+        "phq9_items": [],
+        "gad7_items": [],
+        "notes": "Explicit self-harm disclosure"
+      }
+    },
+    {
+      "id": "hc_007",
+      "messages": [
+        {
+          "role": "student",
+          "content": "I feel alive and happy",
+          "timestamp": "2026-01-20T10:30:00Z"
+        }
+      ],
+      "labels": {
+        "is_crisis": false,
+        "risk_level": "SAFE",
+        "markers": [],
+        "phq9_items": [],
+        "gad7_items": [],
+        "notes": "Positive statement - should NOT trigger"
+      }
+    },
+    {
+      "id": "hc_008",
+      "messages": [
+        {
+          "role": "student",
+          "content": "Everyone would be better off without me",
+          "timestamp": "2026-01-20T10:35:00Z"
+        }
+      ],
+      "labels": {
+        "is_crisis": true,
+        "risk_level": "CAUTION",
+        "markers": ["worthlessness"],
+        "phq9_items": [6],
+        "gad7_items": [],
+        "notes": "Worthlessness - high risk marker"
+      }
+    },
+    {
+      "id": "hc_009",
+      "messages": [
+        {
+          "role": "student",
+          "content": "Time to disappear forever",
+          "timestamp": "2026-01-20T10:40:00Z"
+        }
+      ],
+      "labels": {
+        "is_crisis": true,
+        "risk_level": "CRISIS",
+        "markers": ["suicidal_ideation"],
+        "phq9_items": [9],
+        "gad7_items": [],
+        "notes": "Obfuscated suicidal intent"
+      }
+    },
+    {
+      "id": "hc_010",
+      "messages": [
+        {
+          "role": "student",
+          "content": "My parents would kill me if I failed this test",
+          "timestamp": "2026-01-20T10:45:00Z"
+        }
+      ],
+      "labels": {
+        "is_crisis": false,
+        "risk_level": "SAFE",
+        "markers": [],
+        "phq9_items": [],
+        "gad7_items": [],
+        "notes": "Figurative language - should NOT trigger"
+      }
+    },
+    {
+      "id": "hc_011",
+      "messages": [
+        {
+          "role": "student",
+          "content": "I'm worthless and a burden to everyone",
+          "timestamp": "2026-01-20T10:50:00Z"
+        }
+      ],
+      "labels": {
+        "is_crisis": true,
+        "risk_level": "CAUTION",
+        "markers": ["worthlessness"],
+        "phq9_items": [6],
+        "gad7_items": [],
+        "notes": "Multiple worthlessness markers"
+      }
+    },
+    {
+      "id": "hc_012",
+      "messages": [
+        {
+          "role": "student",
+          "content": "I can't see any point in going on",
+          "timestamp": "2026-01-20T10:55:00Z"
+        }
+      ],
+      "labels": {
+        "is_crisis": true,
+        "risk_level": "CAUTION",
+        "markers": ["hopelessness"],
+        "phq9_items": [2],
+        "gad7_items": [],
+        "notes": "Hopelessness indicator"
+      }
+    }
+  ]
+}

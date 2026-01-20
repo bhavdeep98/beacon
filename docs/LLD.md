@@ -574,6 +574,65 @@ class MistralService:
 
 **Responsibility**: Multi-layer crisis detection with deterministic floor.
 
+**Implementation Status**: Milestone 1 (Refactored with Strategy Pattern)
+
+#### Architecture
+
+**Strategy Pattern Implementation:**
+```
+src/safety/
+├── service.py              # Orchestrator
+├── factory.py              # Strategy factory
+└── strategies/
+    ├── base.py             # DetectionStrategy (abstract)
+    ├── regex_strategy.py   # Deterministic keyword matching
+    ├── semantic_strategy.py # Embedding similarity
+    └── sarcasm_strategy.py # Hyperbole filter
+```
+
+#### Current Consensus Logic (Milestone 1)
+
+**Simple Boolean:**
+```python
+is_crisis = (p_regex >= 0.90) OR (p_semantic >= 0.85)
+```
+
+**With Sarcasm Filter:**
+```python
+if p_sarcasm > 0.7:
+    p_semantic = p_semantic * 0.1  # 90% reduction
+is_crisis = (p_regex >= 0.90) OR (p_semantic >= 0.85)
+```
+
+**Issues:**
+- Semantic layer can trigger crisis alone (too powerful)
+- No weighted consensus across layers
+- No context beyond last 3 messages
+- Binary decision (crisis or not)
+
+#### Target Consensus Logic (Milestone 3)
+
+**Weighted Formula:**
+```python
+S_c = (0.4 × P_regex) + (0.2 × P_semantic) + (0.3 × P_mistral) + (0.1 × P_history)
+```
+
+**Decision Thresholds:**
+- `S_c ≥ 0.90` → CRISIS (hard override, deterministic response)
+- `0.65 ≤ S_c < 0.90` → CAUTION (flag for counselor review)
+- `S_c < 0.65` → SAFE (continue conversation)
+
+**Why These Weights:**
+- **Regex (40%)**: Deterministic safety floor, highest trust
+- **Mistral (30%)**: Deep reasoning, context-aware
+- **Semantic (20%)**: Catches obfuscation, but less reliable
+- **History (10%)**: Trajectory analysis, supporting evidence
+
+**Key Principle**: Semantic layer should NEVER trigger crisis alone. It should only:
+1. Boost confidence when regex already matched
+2. Flag for counselor review (CAUTION level)
+3. Provide evidence for Mistral reasoning
+
 #### Regex Engine (Deterministic Layer)
 
 ```python

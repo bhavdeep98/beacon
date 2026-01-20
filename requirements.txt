@@ -1,0 +1,26 @@
+# PsyFlo - Milestone 1 Dependencies
+# Python 3.11+
+
+# Core Dependencies
+pydantic>=2.5.0
+pyyaml>=6.0.1
+structlog>=24.1.0
+
+# Safety Service - Regex & Semantic
+google-re2>=1.1
+sentence-transformers>=2.2.2
+onnxruntime>=1.16.0
+numpy>=1.24.0
+torch>=2.1.0
+
+# Testing & Evaluation
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+
+# Data Processing
+pandas>=2.1.0
+pyarrow>=14.0.0
+
+# Utilities
+python-dotenv>=1.0.0

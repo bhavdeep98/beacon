@@ -1,0 +1,71 @@
+# Crisis Detection Patterns
+# Based on C-SSRS and clinical research
+
+crisis_keywords:
+  suicidal_ideation:
+    patterns:
+      - "want to die"
+      - "kill myself"
+      - "end my life"
+      - "not worth living"
+      - "better off dead"
+      - "suicide"
+      - "take my own life"
+      - "don't want to be here"
+      - "wish I was dead"
+      - "want to disappear"
+    confidence: 0.95
+    
+  self_harm:
+    patterns:
+      - "cut myself"
+      - "hurt myself"
+      - "self harm"
+      - "self harming"
+      - "cutting"
+      - "burn myself"
+      - "hit myself"
+      - "harm myself"
+    confidence: 0.85
+    
+  intent_with_plan:
+    patterns:
+      - "have a plan"
+      - "going to kill"
+      - "tonight I will"
+      - "pills ready"
+      - "rope ready"
+      - "gun ready"
+      - "jump off"
+      - "overdose"
+    confidence: 0.98
+    
+  hopelessness:
+    patterns:
+      - "no point"
+      - "nothing matters"
+      - "give up"
+      - "can't go on"
+      - "no hope"
+      - "hopeless"
+      - "pointless"
+    confidence: 0.75
+    
+  worthlessness:
+    patterns:
+      - "worthless"
+      - "burden to everyone"
+      - "everyone better without me"
+      - "failure"
+      - "let everyone down"
+      - "waste of space"
+    confidence: 0.70
+
+# Boundary test cases - should NOT trigger
+safe_phrases:
+  - "I feel alive and happy"
+  - "This homework is killing me"  # Hyperbole
+  - "I'm dying of boredom"  # Hyperbole
+  - "My parents would kill me if I failed"  # Figurative
+  - "I'm dead tired"  # Figurative
+  - "That test murdered me"  # Figurative
