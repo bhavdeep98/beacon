@@ -9,7 +9,7 @@ structlog>=24.1.0
 # Safety Service - Regex & Semantic
 google-re2>=1.1
 sentence-transformers>=2.2.2
-onnxruntime>=1.16.0
+# onnxruntime>=1.16.0  # Not available for Python 3.14 yet
 numpy>=1.24.0
 torch>=2.1.0
 
