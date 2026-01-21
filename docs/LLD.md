@@ -306,14 +306,17 @@ class ConsensusResult:
 
 class ConsensusEngine:
     # Weight configuration (must sum to 1.0)
-    W_REG = 0.40      # Deterministic Safety (Regex)
-    W_SEM = 0.20      # Semantic Embeddings (Vector similarity)
-    W_MISTRAL = 0.30  # Deep Pattern Matching (LLM reasoning)
-    W_HIST = 0.10     # Longitudinal History (Trend analysis)
+    # NOTE: These are INITIAL weights. The system learns optimal weights
+    # via gradient descent optimization to maximize recall while minimizing
+    # latency. See evaluation/calibrate_weights.py for training.
+    W_REG = 0.40      # Deterministic Safety (Regex) - LEARNED
+    W_SEM = 0.20      # Semantic Embeddings (Vector similarity) - LEARNED
+    W_MISTRAL = 0.30  # Deep Pattern Matching (LLM reasoning) - LEARNED
+    W_HIST = 0.10     # Longitudinal History (Trend analysis) - LEARNED
     
-    # Thresholds
-    CRISIS_THRESHOLD = 0.90
-    CAUTION_THRESHOLD = 0.65
+    # Thresholds (also learned during calibration)
+    CRISIS_THRESHOLD = 0.90    # LEARNED
+    CAUTION_THRESHOLD = 0.65   # LEARNED
     
     def calculate_score(
         self,
