@@ -62,3 +62,23 @@ Thumbs.db
 # Evaluation results
 evaluation/results/*.json
 evaluation/results/*.csv
+
+# Database files
+*.db
+*.db-journal
+
+# Temporary documentation
+IMPLEMENTATION_SUMMARY.md
+QUICKSTART_NATIVE_LLAMA.md
+SYSTEM_STATUS.md
+
+# Temporary test files
+test_ollama.py
+test_sanitization.py
+
+# Node modules
+node_modules/
+package-lock.json
+
+# Model files
+Modelfile
