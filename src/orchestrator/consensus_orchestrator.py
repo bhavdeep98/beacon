@@ -366,8 +366,10 @@ class ConsensusOrchestrator:
         start_time = time.time()
         
         try:
+            # Run synchronous analyze() in thread pool to avoid blocking
+            loop = asyncio.get_event_loop()
             result = await asyncio.wait_for(
-                self.mistral.analyze(message),
+                loop.run_in_executor(None, self.mistral.analyze, message),
                 timeout=self.config.mistral_timeout
             )
             
@@ -375,23 +377,38 @@ class ConsensusOrchestrator:
             
             logger.debug(
                 "mistral_layer_complete",
-                score=result.confidence,
+                score=result.p_mistral,
                 latency_ms=latency_ms,
-                patterns=result.matched_patterns
+                risk_level=result.risk_level.value,
+                clinical_markers=len(result.clinical_markers)
             )
             
             return LayerScore(
                 layer_name="mistral",
-                score=result.confidence,
+                score=result.p_mistral,
                 latency_ms=latency_ms,
-                matched_patterns=result.matched_patterns,
-                evidence=result.reasoning
+                matched_patterns=[m.category for m in result.clinical_markers],
+                evidence=result.reasoning_trace
             )
             
         except asyncio.TimeoutError:
+            latency_ms = int((time.time() - start_time) * 1000)
             logger.warning(
                 "mistral_timeout",
-                timeout_seconds=self.config.mistral_timeout
+                timeout_seconds=self.config.mistral_timeout,
+                elapsed_ms=latency_ms
+            )
+            if self.circuit_breaker:
+                self.circuit_breaker.record_failure()
+            return None
+        except Exception as e:
+            latency_ms = int((time.time() - start_time) * 1000)
+            logger.error(
+                "mistral_layer_error",
+                error=str(e),
+                error_type=type(e).__name__,
+                elapsed_ms=latency_ms,
+                exc_info=True
             )
             if self.circuit_breaker:
                 self.circuit_breaker.record_failure()

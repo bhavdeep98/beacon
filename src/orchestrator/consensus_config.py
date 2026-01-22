@@ -30,8 +30,8 @@ class ConsensusConfig:
     caution_threshold: float = 0.65
     
     # Timeout settings (seconds)
-    mistral_timeout: float = 3.0
-    total_timeout: float = 5.0
+    mistral_timeout: float = 15.0
+    total_timeout: float = 20.0
     
     # Circuit breaker settings
     circuit_breaker_enabled: bool = True
