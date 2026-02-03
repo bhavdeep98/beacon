@@ -1,1 +1,1 @@
-"""Evaluation suites for PsyFlo"""
+"""Evaluation suites for Beacon"""

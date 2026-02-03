@@ -14,6 +14,14 @@ crisis_keywords:
       - "don't want to be here"
       - "wish I was dead"
       - "want to disappear"
+      - "checking out early"  # Obfuscated
+      - "time to disappear"  # Obfuscated
+      - "going away for good"  # Obfuscated
+      - "leaving this world"  # Obfuscated
+      - "won't be around much longer"  # Obfuscated
+      - "saying goodbye"  # Obfuscated (context-dependent)
+      - "ending it all"  # Obfuscated
+      - "permanent solution"  # Obfuscated
     confidence: 0.95
     
   self_harm:
@@ -59,6 +67,10 @@ crisis_keywords:
       - "failure"
       - "let everyone down"
       - "waste of space"
+      - "making things easier for everyone"  # Obfuscated (burden)
+      - "they'd be happier without me"  # Obfuscated
+      - "just a burden"  # Direct
+      - "don't deserve to live"  # Direct
     confidence: 0.70
 
 # Boundary test cases - should NOT trigger

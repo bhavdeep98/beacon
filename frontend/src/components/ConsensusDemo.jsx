@@ -1,12 +1,49 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './ConsensusDemo.css';
 
 const ConsensusDemo = () => {
   const [message, setMessage] = useState('');
-  const [sessionId] = useState('demo-session-' + Date.now());
+  const [sessionId] = useState(() => {
+    // Persistent session ID - stored in localStorage
+    const stored = localStorage.getItem('beacon_demo_session');
+    if (stored) return stored;
+    const newId = 'demo-session-' + Date.now();
+    localStorage.setItem('beacon_demo_session', newId);
+    return newId;
+  });
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
-  const [history, setHistory] = useState([]);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [liveScores, setLiveScores] = useState({
+    regex: null,
+    semantic: null,
+    mistral: null
+  });
+  const [consensusVerdict, setConsensusVerdict] = useState(null);
+  const [result, setResult] = useState(() => {
+    // Restore last result from localStorage
+    const stored = localStorage.getItem('beacon_last_result');
+    return stored ? JSON.parse(stored) : null;
+  });
+  const [history, setHistory] = useState(() => {
+    // Restore history from localStorage
+    const stored = localStorage.getItem('psyflo_history');
+    return stored ? JSON.parse(stored) : [];
+  });
+  const [streamingResponse, setStreamingResponse] = useState('');
+
+  // Save result to localStorage whenever it changes
+  useEffect(() => {
+    if (result) {
+      localStorage.setItem('psyflo_last_result', JSON.stringify(result));
+    }
+  }, [result]);
+
+  // Save history to localStorage whenever it changes
+  useEffect(() => {
+    if (history.length > 0) {
+      localStorage.setItem('psyflo_history', JSON.stringify(history));
+    }
+  }, [history]);
 
   const exampleMessages = [
     { label: '🚨 Crisis', text: 'I want to kill myself', category: 'crisis' },
@@ -21,10 +58,15 @@ const ConsensusDemo = () => {
     if (!text.trim()) return;
 
     setLoading(true);
+    setAnalyzing(true);
+    setStreamingResponse('');
     setResult(null);
+    setLiveScores({ regex: null, semantic: null, mistral: null });
+    setConsensusVerdict(null);
 
     try {
-      const response = await fetch('http://localhost:8000/chat', {
+      // Use streaming endpoint for real-time risk assessment
+      const response = await fetch('http://localhost:8000/chat/stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -32,6 +74,7 @@ const ConsensusDemo = () => {
         body: JSON.stringify({
           session_id: sessionId,
           message: text,
+          skip_response: true  // Skip response generation for demo (scoring only)
         }),
       });
 
@@ -39,26 +82,104 @@ const ConsensusDemo = () => {
         throw new Error('Failed to send message');
       }
 
-      const data = await response.json();
-      
-      // Fetch the detailed conversation to get scores
-      const convResponse = await fetch(`http://localhost:8000/conversations/${sessionId}`);
-      const conversations = await convResponse.json();
-      const latestConv = conversations[0]; // Most recent
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let fullResponse = '';
+      let conversationId = null;
+      let riskLevel = null;
+      let isCrisis = false;
+      let finalScores = { regex: null, semantic: null, mistral: null };
 
-      setResult({
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = JSON.parse(line.slice(6));
+            
+            if (data.type === 'risk_analysis_start') {
+              setAnalyzing(true);
+            } else if (data.type === 'risk_score') {
+              // Update live scores as they come in
+              setLiveScores(prev => ({
+                ...prev,
+                [data.layer]: {
+                  score: data.score,
+                  latency_ms: data.latency_ms,
+                  patterns: data.patterns || [],
+                  timeout: data.timeout || false
+                }
+              }));
+              finalScores[data.layer] = {
+                score: data.score,
+                latency_ms: data.latency_ms,
+                patterns: data.patterns || [],
+                timeout: data.timeout || false
+              };
+            } else if (data.type === 'consensus_verdict') {
+              setConsensusVerdict({
+                risk_level: data.risk_level,
+                final_score: data.final_score,
+                is_crisis: data.is_crisis,
+                total_latency_ms: data.total_latency_ms
+              });
+              riskLevel = data.risk_level;
+              isCrisis = data.is_crisis;
+              setAnalyzing(false);
+            } else if (data.type === 'crisis_alert') {
+              // Show crisis alert banner
+              console.log('CRISIS ALERT:', data.message);
+            } else if (data.type === 'token') {
+              fullResponse += data.content;
+              setStreamingResponse(fullResponse);
+            } else if (data.type === 'done') {
+              conversationId = data.conversation_id;
+              riskLevel = data.risk_level;
+              isCrisis = data.is_crisis;
+            } else if (data.type === 'error') {
+              throw new Error(data.message);
+            }
+          }
+        }
+      }
+
+      // Build final result - USE consensusVerdict.final_score directly
+      const resultData = {
         message: text,
-        response: data.response,
-        riskLevel: data.risk_level,
-        isCrisis: data.is_crisis,
-        conversationId: data.conversation_id,
-        details: latestConv,
-      });
+        response: fullResponse,
+        riskLevel: riskLevel,
+        isCrisis: isCrisis,
+        conversationId: conversationId,
+        details: {
+          // CRITICAL: Use consensusVerdict.final_score directly, not from reasoning string
+          risk_score: consensusVerdict?.final_score || 0,
+          regex_score: finalScores.regex?.score || 0,
+          semantic_score: finalScores.semantic?.score || 0,
+          mistral_score: finalScores.mistral?.score,
+          matched_patterns: [
+            ...(finalScores.regex?.patterns || []),
+            ...(finalScores.semantic?.patterns || []),
+            ...(finalScores.mistral?.patterns || [])
+          ],
+          latency_ms: consensusVerdict?.total_latency_ms || 0,
+          timeout_occurred: finalScores.mistral?.timeout || false,
+          reasoning: `Risk Level: ${riskLevel}\nConsensus Score: ${(consensusVerdict?.final_score * 100).toFixed(1)}%\n\nLayer Scores:\n  Regex: ${(finalScores.regex?.score * 100).toFixed(1)}%\n  Semantic: ${(finalScores.semantic?.score * 100).toFixed(1)}%\n  Mistral: ${finalScores.mistral?.score ? (finalScores.mistral.score * 100).toFixed(1) + '%' : 'TIMEOUT'}`,
+          created_at: new Date().toISOString()
+        },
+      };
+
+      setResult(resultData);
 
       setHistory([...history, {
         message: text,
-        riskLevel: data.risk_level,
-        isCrisis: data.is_crisis,
+        riskLevel: riskLevel,
+        isCrisis: isCrisis,
         timestamp: new Date().toLocaleTimeString(),
       }]);
 
@@ -68,6 +189,8 @@ const ConsensusDemo = () => {
       alert('Failed to send message. Make sure the backend is running on http://localhost:8000');
     } finally {
       setLoading(false);
+      setAnalyzing(false);
+      setStreamingResponse('');
     }
   };
 
@@ -162,8 +285,137 @@ const ConsensusDemo = () => {
 
           {loading && (
             <div className="loading-state">
-              <div className="spinner"></div>
-              <p>Analyzing with 3-way consensus...</p>
+              {analyzing ? (
+                <>
+                  <div className="live-analysis">
+                    <h3>🔍 Real-Time Risk Assessment</h3>
+                    <p className="analysis-subtitle">Detecting crisis markers as message is analyzed...</p>
+                    
+                    {/* Live Score Cards */}
+                    <div className="live-scores">
+                      {/* Regex Layer */}
+                      <div className={`live-score-card ${liveScores.regex ? 'complete' : 'pending'}`}>
+                        <div className="score-header">
+                          <span className="score-icon">🔍</span>
+                          <span className="score-name">Regex</span>
+                        </div>
+                        {liveScores.regex ? (
+                          <>
+                            <div className="score-value" style={{ 
+                              color: liveScores.regex.score > 0.85 ? '#dc3545' : 
+                                     liveScores.regex.score > 0.6 ? '#ffc107' : '#28a745' 
+                            }}>
+                              {(liveScores.regex.score * 100).toFixed(1)}%
+                            </div>
+                            <div className="score-latency">{liveScores.regex.latency_ms}ms</div>
+                            {liveScores.regex.patterns.length > 0 && (
+                              <div className="score-patterns">
+                                {liveScores.regex.patterns.slice(0, 2).map((p, i) => (
+                                  <span key={i} className="pattern-badge">{p}</span>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="score-pending">
+                            <div className="spinner"></div>
+                            <span>Analyzing...</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Semantic Layer */}
+                      <div className={`live-score-card ${liveScores.semantic ? 'complete' : 'pending'}`}>
+                        <div className="score-header">
+                          <span className="score-icon">🧬</span>
+                          <span className="score-name">Semantic</span>
+                        </div>
+                        {liveScores.semantic ? (
+                          <>
+                            <div className="score-value" style={{ 
+                              color: liveScores.semantic.score > 0.85 ? '#dc3545' : 
+                                     liveScores.semantic.score > 0.6 ? '#ffc107' : '#28a745' 
+                            }}>
+                              {(liveScores.semantic.score * 100).toFixed(1)}%
+                            </div>
+                            <div className="score-latency">{liveScores.semantic.latency_ms}ms</div>
+                          </>
+                        ) : (
+                          <div className="score-pending">
+                            <div className="spinner"></div>
+                            <span>Analyzing...</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Mistral Layer */}
+                      <div className={`live-score-card ${liveScores.mistral ? 'complete' : 'pending'}`}>
+                        <div className="score-header">
+                          <span className="score-icon">🤖</span>
+                          <span className="score-name">Mistral</span>
+                        </div>
+                        {liveScores.mistral ? (
+                          liveScores.mistral.timeout ? (
+                            <div className="score-timeout">
+                              <span>⏱️ Timeout</span>
+                              <div className="timeout-note">Graceful degradation</div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="score-value" style={{ 
+                                color: liveScores.mistral.score > 0.85 ? '#dc3545' : 
+                                       liveScores.mistral.score > 0.6 ? '#ffc107' : '#28a745' 
+                              }}>
+                                {(liveScores.mistral.score * 100).toFixed(1)}%
+                              </div>
+                              <div className="score-latency">{liveScores.mistral.latency_ms}ms</div>
+                            </>
+                          )
+                        ) : (
+                          <div className="score-pending">
+                            <div className="spinner"></div>
+                            <span>Analyzing...</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Consensus Verdict */}
+                    {consensusVerdict && (
+                      <div className="consensus-verdict-live" style={{ 
+                        borderColor: consensusVerdict.risk_level === 'CRISIS' ? '#dc3545' : 
+                                    consensusVerdict.risk_level === 'CAUTION' ? '#ffc107' : '#28a745' 
+                      }}>
+                        <div className="verdict-icon">
+                          {consensusVerdict.risk_level === 'CRISIS' ? '🚨' : 
+                           consensusVerdict.risk_level === 'CAUTION' ? '⚠️' : '✅'}
+                        </div>
+                        <div className="verdict-content">
+                          <div className="verdict-level">{consensusVerdict.risk_level}</div>
+                          <div className="verdict-score">
+                            Consensus: {(consensusVerdict.final_score * 100).toFixed(1)}%
+                          </div>
+                          <div className="verdict-latency">
+                            Total: {consensusVerdict.total_latency_ms}ms
+                          </div>
+                        </div>
+                        {consensusVerdict.is_crisis && (
+                          <div className="crisis-badge-live">
+                            ⚠️ COUNSELOR NOTIFIED
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="typing-indicator">
+                    <div className="typing-text">{streamingResponse}</div>
+                    <span className="cursor">|</span>
+                  </div>
+                </>
+              )}
             </div>
           )}
 

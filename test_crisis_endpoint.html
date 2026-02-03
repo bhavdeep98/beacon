@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Crisis Events Endpoint</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 5px; overflow-x: auto; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Crisis Events Endpoint Test</h1>
+    
+    <h2>1. Crisis Events</h2>
+    <button onclick="testCrisisEvents()">Test /crisis-events</button>
+    <pre id="crisis-result">Click button to test...</pre>
+    
+    <h2>2. Single Conversation</h2>
+    <button onclick="testConversation()">Test /conversations/1</button>
+    <pre id="conv-result">Click button to test...</pre>
+    
+    <h2>3. Crisis Event with Conversation</h2>
+    <button onclick="testFullCrisisEvent()">Test Full Crisis Event</button>
+    <pre id="full-result">Click button to test...</pre>
+
+    <script>
+        const API_URL = 'http://localhost:8000';
+
+        async function testCrisisEvents() {
+            const result = document.getElementById('crisis-result');
+            try {
+                const response = await fetch(`${API_URL}/crisis-events?limit=1`);
+                const data = await response.json();
+                result.innerHTML = JSON.stringify(data, null, 2);
+                result.className = 'success';
+            } catch (error) {
+                result.innerHTML = `ERROR: ${error.message}`;
+                result.className = 'error';
+            }
+        }
+
+        async function testConversation() {
+            const result = document.getElementById('conv-result');
+            try {
+                const response = await fetch(`${API_URL}/conversations/1`);
+                const data = await response.json();
+                result.innerHTML = JSON.stringify(data, null, 2);
+                result.className = 'success';
+            } catch (error) {
+                result.innerHTML = `ERROR: ${error.message}`;
+                result.className = 'error';
+            }
+        }
+
+        async function testFullCrisisEvent() {
+            const result = document.getElementById('full-result');
+            try {
+                // Get crisis event
+                const eventResponse = await fetch(`${API_URL}/crisis-events?limit=1`);
+                const events = await eventResponse.json();
+                const event = events[0];
+                
+                // Get conversation
+                const convResponse = await fetch(`${API_URL}/conversations/${event.conversation_id}`);
+                const conversation = await convResponse.json();
+                
+                const fullData = {
+                    event: event,
+                    conversation: conversation
+                };
+                
+                result.innerHTML = JSON.stringify(fullData, null, 2);
+                result.className = 'success';
+            } catch (error) {
+                result.innerHTML = `ERROR: ${error.message}`;
+                result.className = 'error';
+            }
+        }
+    </script>
+</body>
+</html>

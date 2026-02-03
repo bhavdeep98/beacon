@@ -16,7 +16,7 @@ from utils.gpu_utils import calculate_optimal_layers, get_gpu_info
 
 def main():
     print("=" * 60)
-    print("PsyFlo VRAM Check")
+    print("Beacon VRAM Check")
     print("=" * 60)
     print()
     

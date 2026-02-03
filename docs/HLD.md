@@ -1,5 +1,5 @@
 # High Level Design (HLD)
-## PsyFlo (Feelwell) Mental Health AI Triage System
+## Beacon Mental Health AI Triage System
 
 **Document Version**: 1.2  
 **Status**: Architecture Specification  
@@ -9,9 +9,9 @@
 
 ## 1. System Overview
 
-PsyFlo is a mission-critical, AI-driven mental health triage platform engineered specifically for school districts and youth organizations. It serves as a sophisticated digital bridge, addressing the growing disparity between high-volume student emotional needs and the finite availability of professional counseling staff.
+Beacon is a mission-critical, AI-driven mental health triage platform engineered specifically for school districts and youth organizations. It serves as a sophisticated digital bridge, addressing the growing disparity between high-volume student emotional needs and the finite availability of professional counseling staff.
 
-By automating the initial engagement and risk assessment phases, PsyFlo ensures that no student's plea for help goes unnoticed while optimizing the counselor's workflow through data-driven prioritization.
+By automating the initial engagement and risk assessment phases, Beacon ensures that no student's plea for help goes unnoticed while optimizing the counselor's workflow through data-driven prioritization.
 
 ### 1.1 Core Objectives
 
@@ -137,7 +137,7 @@ By automating the initial engagement and risk assessment phases, PsyFlo ensures 
 
 ## 4. The Parallel Decision Pipeline (The "Brain")
 
-Traditional safety systems rely on linear "Safety Filter → LLM" approach, which introduces latency and often breaks the "human" feel. PsyFlo utilizes a **Parallel Consensus Model**.
+Traditional safety systems rely on linear "Safety Filter → LLM" approach, which introduces latency and often breaks the "human" feel. Beacon utilizes a **Parallel Consensus Model**.
 
 ### 4.1 How It Works
 
@@ -182,7 +182,7 @@ Sc = (w_regex · P_regex) + (w_semantic · P_semantic) + (w_history · P_history
 
 ### 4.3 Comparative Architectural Advantage
 
-| Approach | Pro | Con | PsyFlo Advantage |
+| Approach | Pro | Con | Beacon Advantage |
 |----------|-----|-----|------------------|
 | Pure LLM Prompting | Easy to implement; fluid conversation | Prone to "hallucinated safety," jailbreaking | Deterministic regex/semantic layer as unbypassable safety floor |
 | Fine-Tuned LLM | Highly tailored tone and vocabulary | Requires massive datasets; safety remains probabilistic | LLM is "voice" only, safety delegated to specialized microservices |

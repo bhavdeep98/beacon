@@ -4,7 +4,7 @@ inclusion: always
 
 # Failure Modes & Mitigation Strategies
 
-This document outlines potential failure modes and their mitigation strategies for the PsyFlo system.
+This document outlines potential failure modes and their mitigation strategies for the Beacon system.
 
 ## Trust & Transparency Failures
 

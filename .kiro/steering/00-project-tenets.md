@@ -2,9 +2,9 @@
 inclusion: always
 ---
 
-# PsyFlo (Feelwell) Project Tenets
+# Beacon Project Tenets
 
-These tenets are the foundational principles that guide all technical and product decisions for the PsyFlo mental health AI triage system.
+These tenets are the foundational principles that guide all technical and product decisions for the Beacon mental health AI triage system.
 
 ## 1. Safety First, Always
 - Deterministic guardrails bypass LLM for crisis detection

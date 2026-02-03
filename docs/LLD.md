@@ -1,5 +1,5 @@
 # Low-Level Design (LLD)
-## PsyFlo (Feelwell) - Implementation Specification
+## Beacon - Implementation Specification
 
 **Version**: 2.3  
 **Status**: Implementation Ready  
@@ -53,7 +53,7 @@ Network topology designed with "Defense in Depth" strategy to minimize attack su
 
 #### VPC Configuration
 
-**VPC**: `vpc-feelwell-prod`
+**VPC**: `vpc-beacon-prod`
 - **CIDR**: 10.0.0.0/16
 - **Purpose**: Dedicated private network space
 
@@ -129,9 +129,9 @@ Outbound:
 
 **Environment Variables**:
 ```
-REDIS_ENDPOINT=feelwell-cache.xxxxx.cache.amazonaws.com:6379
-RDS_ENDPOINT=feelwell-db.xxxxx.rds.amazonaws.com:5432
-SNS_TOPIC_ARN=arn:aws:sns:us-east-1:xxxxx:feelwell-events
+REDIS_ENDPOINT=beacon-cache.xxxxx.cache.amazonaws.com:6379
+RDS_ENDPOINT=beacon-db.xxxxx.rds.amazonaws.com:5432
+SNS_TOPIC_ARN=arn:aws:sns:us-east-1:xxxxx:beacon-events
 LOG_LEVEL=INFO
 ```
 
@@ -241,7 +241,7 @@ Parameter Group: custom-psyflo-redis7
 
 #### S3 Data Lake
 
-**Bucket**: `feelwell-data-lake`
+**Bucket**: `beacon-data-lake`
 - **Encryption**: AES-256 S3-managed (SSE-S3)
 - **Versioning**: Enabled
 - **Replication**: Cross-region to `us-west-2` (disaster recovery)
@@ -256,7 +256,7 @@ Day 90-7yr: S3 Glacier Deep Archive
 
 **Folder Structure**:
 ```
-s3://feelwell-data-lake/
+s3://beacon-data-lake/
   conversations/
     school_id={uuid}/
       year={yyyy}/
@@ -468,7 +468,7 @@ class ChatOrchestrator:
 
 ### 3.2 Clinical Pattern Service (Mistral-7B)
 
-**Responsibility**: Extract complex clinical markers using "Hidden Clinician" pattern.
+**Responsibility**: Extract complex clinical markers using "Hidden Clinician" pattern with RAG-enhanced context.
 
 #### System Prompt Template
 
@@ -483,7 +483,12 @@ Analyze the conversation context and identify signs of:
 - Suicidal Ideation (thoughts of death, self-harm)
 - Anxiety (excessive worry, panic)
 
-Context: {previous_3_messages}
+## RAG-Retrieved Context
+{rag_context}
+
+## Recent Conversation
+{previous_messages}
+
 Current Input: "{current_message}"
 
 Output ONLY valid JSON with this exact structure:
@@ -499,30 +504,45 @@ Be conservative. Only flag clear indicators, not vague statements.
 """
 
 class MistralService:
-    def __init__(self, sagemaker_endpoint: str):
+    def __init__(self, sagemaker_endpoint: str, rag_service):
         self.endpoint = sagemaker_endpoint
         self.runtime = boto3.client('sagemaker-runtime')
+        self.rag_service = rag_service
     
     async def analyze_clinical(
         self,
         message: str,
+        student_id_hash: str,
         history: list[str]
     ) -> dict:
         """
-        Deep clinical pattern analysis using Mistral-7B.
+        Deep clinical pattern analysis using Mistral-7B with RAG context.
         
         Args:
             message: Current student message
-            history: Last 3 messages for context
+            student_id_hash: Student identifier for RAG retrieval
+            history: Recent messages for context
             
         Returns:
             Dict with score, detected, marker, reasoning, patterns
         """
-        # Build context from last 3 messages
-        context = "\n".join(history[-3:]) if history else "No prior context"
+        # Build RAG context (semantic retrieval of relevant past conversations)
+        rag_context = self.rag_service.build_context(
+            current_message=message,
+            student_id_hash=student_id_hash,
+            include_conversations=True,
+            include_resources=False  # Clinical analysis doesn't need resources
+        )
+        
+        # Format RAG context
+        rag_context_str = self.rag_service.format_context_for_llm(rag_context)
+        
+        # Build recent conversation context
+        context = "\n".join(history[-5:]) if history else "No prior context"
         
         prompt = SYSTEM_PROMPT.format(
-            previous_3_messages=context,
+            rag_context=rag_context_str,
+            previous_messages=context,
             current_message=message
         )
         
@@ -610,7 +630,7 @@ is_crisis = (p_regex >= 0.90) OR (p_semantic >= 0.85)
 **Issues:**
 - Semantic layer can trigger crisis alone (too powerful)
 - No weighted consensus across layers
-- No context beyond last 3 messages
+- ~~No context beyond last 3 messages~~ **RESOLVED: RAG provides semantic retrieval of relevant past conversations**
 - Binary decision (crisis or not)
 
 #### Target Consensus Logic (Milestone 3)
@@ -1419,7 +1439,7 @@ CREATE UNIQUE INDEX idx_dashboard_student ON counselor_dashboard(student_hash);
 
 **Path Structure**:
 ```
-s3://feelwell-data-lake/
+s3://beacon-data-lake/
   conversations/
     school_id={uuid}/
       year={yyyy}/

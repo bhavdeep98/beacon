@@ -1,4 +1,4 @@
-# PsyFlo - Milestone 1 & 2 Dependencies
+# Beacon - Milestone 1 & 2 Dependencies
 # Python 3.11+
 
 # Core Dependencies

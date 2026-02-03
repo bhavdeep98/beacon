@@ -1,6 +1,6 @@
 # Architecture Decision Log (ADL)
 
-This document records significant architectural and design decisions for PsyFlo.
+This document records significant architectural and design decisions for Beacon.
 
 ---
 

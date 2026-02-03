@@ -30,8 +30,10 @@ class ConsensusConfig:
     caution_threshold: float = 0.65
     
     # Timeout settings (seconds)
-    mistral_timeout: float = 15.0
-    total_timeout: float = 20.0
+    # Tenet #1: Safety First - Allow mental health model time to think
+    # Tenet #8: Engagement - "Thinking" animation builds trust
+    mistral_timeout: float = 120.0  # 2 minutes for clinical reasoning
+    total_timeout: float = 150.0    # 2.5 minutes total
     
     # Circuit breaker settings
     circuit_breaker_enabled: bool = True

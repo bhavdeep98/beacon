@@ -104,7 +104,7 @@ class SemanticDetectionStrategy(DetectionStrategy):
             # Model downloaded and embeddings pre-computed
         """
         self.patterns = patterns
-        self.similarity_threshold = 0.75  # Minimum cosine similarity to consider match
+        self.similarity_threshold = 0.60  # Lowered from 0.75 to catch more nuanced language
         
         # Load semantic model
         logger.info("loading_semantic_model", model=model_name)
@@ -274,6 +274,15 @@ class SemanticDetectionStrategy(DetectionStrategy):
             max_sim_idx = similarities.argmax()
             max_sim = similarities[max_sim_idx]
             
+            # Log all similarities for debugging
+            logger.debug(
+                "semantic_similarity_check",
+                category=category,
+                max_similarity=float(max_sim),
+                best_phrase=config['phrases'][max_sim_idx],
+                threshold=self.similarity_threshold
+            )
+            
             if max_sim > max_similarity:
                 max_similarity = max_sim
                 matched_category = category
@@ -295,6 +304,15 @@ class SemanticDetectionStrategy(DetectionStrategy):
             
             # Prefix with "semantic:" to distinguish from regex matches
             return score, [f"semantic:{matched_category}"]
+        
+        # No match found - log for debugging
+        logger.debug(
+            "semantic_no_match",
+            max_similarity=float(max_similarity),
+            threshold=self.similarity_threshold,
+            best_category=matched_category,
+            best_phrase=best_phrase
+        )
         
         return 0.0, []
     

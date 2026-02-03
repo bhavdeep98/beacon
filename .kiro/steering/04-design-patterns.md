@@ -1,4 +1,4 @@
-# PsyFlo Design Patterns
+# Beacon Design Patterns
 
 Design patterns for building safe, maintainable, and compliant mental health systems.
 

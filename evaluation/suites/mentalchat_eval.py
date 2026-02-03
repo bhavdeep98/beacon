@@ -201,7 +201,7 @@ def main():
     )
     
     print("\n" + "="*70)
-    print("PsyFlo Safety Service - MentalChat16K Evaluation")
+    print("Beacon Safety Service - MentalChat16K Evaluation")
     print("="*70)
     
     # Initialize Safety Service

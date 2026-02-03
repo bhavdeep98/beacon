@@ -145,7 +145,7 @@ def main():
     )
     
     print("\n" + "="*70)
-    print("PsyFlo Dataset Downloader - Milestone 1")
+    print("Beacon Dataset Downloader - Milestone 1")
     print("="*70)
     
     # Initialize loader

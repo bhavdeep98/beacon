@@ -271,7 +271,7 @@ def main():
     )
     
     print("\n" + "="*70)
-    print("PsyFlo Safety Service - Benchmark Suite")
+    print("Beacon Safety Service - Benchmark Suite")
     print("="*70)
     
     # Initialize services

@@ -1,0 +1,11 @@
+# RAG (Retrieval-Augmented Generation) Dependencies
+
+# Core embedding model
+sentence-transformers==2.2.2
+
+# Vector operations
+numpy>=1.24.0
+
+# Already in main requirements.txt:
+# - structlog (logging)
+# - pydantic (data validation)

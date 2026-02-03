@@ -1,266 +1,612 @@
+import { useState, useEffect } from 'react'
+import './CounselorDashboard.css'
 
-import React, { useState, useEffect } from 'react';
-import './CounselorDashboard.css';
+const API_URL = 'http://localhost:8000'
 
-const API_URL = 'http://localhost:8000';
+function CounselorDashboard() {
+  const [view, setView] = useState('students') // 'students' or 'crisis'
+  const [students, setStudents] = useState([])
+  const [selectedStudent, setSelectedStudent] = useState(null)
+  const [studentConversations, setStudentConversations] = useState([])
+  const [studentThemes, setStudentThemes] = useState([])
+  const [crisisEvents, setCrisisEvents] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [expandedConversations, setExpandedConversations] = useState(new Set())
+  const [expandedCrisisEvents, setExpandedCrisisEvents] = useState(new Set())
+  const [responseFeedback, setResponseFeedback] = useState({})
 
-const CounselorDashboard = () => {
-    const [crisisEvents, setCrisisEvents] = useState([]);
-    const [selectedSession, setSelectedSession] = useState(null);
-    const [conversations, setConversations] = useState([]);
-    const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    loadStudents()
+    loadCrisisEvents()
+  }, [])
 
-    // Fetch crisis events on mount
-    useEffect(() => {
-        const fetchCrisisEvents = async () => {
+  const loadStudents = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch(`${API_URL}/students`)
+      if (response.ok) {
+        const data = await response.json()
+        setStudents(data)
+      }
+    } catch (error) {
+      console.error('Failed to load students:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadCrisisEvents = async () => {
+    try {
+      console.log('[Crisis Events] Fetching crisis events...')
+      const response = await fetch(`${API_URL}/crisis-events`)
+      if (response.ok) {
+        const data = await response.json()
+        console.log('[Crisis Events] Received events:', data.length)
+        
+        // For each crisis event, fetch the full conversation details
+        const eventsWithConversations = await Promise.all(
+          data.map(async (event, index) => {
             try {
-                const response = await fetch(`${API_URL}/crisis-events`);
-                if (response.ok) {
-                    const data = await response.json();
-                    setCrisisEvents(data);
-                } else {
-                    console.error('Failed to fetch crisis events');
+              console.log(`[Crisis Event ${index}] Event ID: ${event.id}, Conv ID: ${event.conversation_id}`)
+              
+              // Parse matched_patterns if it's a string
+              if (typeof event.matched_patterns === 'string') {
+                event.matched_patterns = JSON.parse(event.matched_patterns)
+              }
+              
+              const convResponse = await fetch(`${API_URL}/conversations/${event.conversation_id}`)
+              console.log(`[Crisis Event ${index}] Conversation fetch status: ${convResponse.status}`)
+              
+              if (convResponse.ok) {
+                const conversation = await convResponse.json()
+                console.log(`[Crisis Event ${index}] Conversation data:`, {
+                  id: conversation.id,
+                  hasMessage: !!conversation.message,
+                  hasResponse: !!conversation.response,
+                  messageLength: conversation.message?.length,
+                  responseLength: conversation.response?.length
+                })
+                
+                // Parse matched_patterns in conversation too
+                if (typeof conversation.matched_patterns === 'string') {
+                  conversation.matched_patterns = JSON.parse(conversation.matched_patterns)
                 }
-            } catch (error) {
-                console.error('Error fetching crisis events:', error);
+                
+                return { ...event, conversation }
+              } else {
+                console.error(`[Crisis Event ${index}] Failed to fetch conversation: ${convResponse.status}`)
+              }
+            } catch (err) {
+              console.error(`[Crisis Event ${index}] Error loading conversation:`, err)
             }
-        };
+            return event
+          })
+        )
+        
+        console.log('[Crisis Events] Events with conversations:', eventsWithConversations)
+        setCrisisEvents(eventsWithConversations)
+      }
+    } catch (error) {
+      console.error('[Crisis Events] Failed to load crisis events:', error)
+    }
+  }
 
-        fetchCrisisEvents();
-        // Poll every 5 seconds for new events
-        const interval = setInterval(fetchCrisisEvents, 5000);
-        return () => clearInterval(interval);
-    }, []);
+  const selectStudent = async (student) => {
+    setSelectedStudent(student)
+    setLoading(true)
+    
+    try {
+      // Load conversations
+      const convResponse = await fetch(
+        `${API_URL}/students/hash/${student.student_id_hash}/conversations`
+      )
+      if (convResponse.ok) {
+        const convData = await convResponse.json()
+        // Parse matched_patterns if they're strings
+        const parsedConvData = convData.map(conv => ({
+          ...conv,
+          matched_patterns: typeof conv.matched_patterns === 'string' 
+            ? JSON.parse(conv.matched_patterns) 
+            : conv.matched_patterns
+        }))
+        setStudentConversations(parsedConvData)
+      }
 
-    // Fetch conversation details when a session is selected
-    useEffect(() => {
-        const fetchConversations = async () => {
-            if (!selectedSession) return;
+      // Load themes
+      const themeResponse = await fetch(
+        `${API_URL}/students/hash/${student.student_id_hash}/themes`
+      )
+      if (themeResponse.ok) {
+        const themeData = await themeResponse.json()
+        setStudentThemes(themeData)
+      }
+    } catch (error) {
+      console.error('Failed to load student details:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
-            setLoading(true);
-            try {
-                // The crisis event has session_id_hash, but we need the original session_id to look it up?
-                // Wait, based on backend code: 
-                // @app.get("/conversations/{session_id}") uses hash_pii(session_id).
-                // But the crisis event only has session_id_hash.
-                // WE CANNOT LOOKUP by hash if the endpoint expects plain ID and hashes it again.
-                //
-                // Let's check backend/main.py again.
-                // @app.get("/conversations/{session_id}") -> session_id_hash = hash_pii(session_id)
-                //
-                // If I only have the hash from the crisis event, I can't call this endpoint unless I modify the backend 
-                // or if the frontend somehow knows the mapping.
-                // But this is a "Counselor View", they wouldn't know the student's session ID (PII).
-                //
-                // Actually, for a prototype, maybe the endpoint should accept the hash directly or we update the backend.
-                // Let's look at the backend code I read earlier.
-                //
-                // Backend:
-                // @app.get("/conversations/{session_id}")
-                //     session_id_hash = hash_pii(session_id)
-                //     conversations = db.query(Conversation).filter(Conversation.session_id_hash == session_id_hash)...
-                //
-                // Code Issue: The backend expects the raw session_id, but the crisis event only stores the hash.
-                // For the purpose of this prototype and "Counselor View", I can't reverse the hash.
-                //
-                // However, I can try to pass the hash as the session_id if I *disable* hashing in the endpoint for lookup, 
-                // OR add a new endpoint /conversations/by-hash/{hash}.
-                //
-                // BUT, I can't change backend right now easily without restarting everything.
-                // Wait, I can change backend file and uvicorn auto-reloads!
-                //
-                // Let's first try to just display the crisis events.
-                // If I click, it might fail to load details.
-                //
-                // Actually, wait. In `ConsensusDemo`, `sessionId` is known.
-                // In `CounselorDashboard`, we are viewing *all* events.
-                //
-                // The backend likely needs an endpoint `get_conversations_by_hash`.
-                // OR checking if `session_id` passed is already a hash? No, `hash_pii` re-hashes.
-                //
-                // Workaround: I will implement the fetch, but if it fails, I'll handle it. 
-                // Wait, I see `session_id` in `CrisisEvent` in backend?
-                // `CrisisEvent` has `session_id_hash`.
-                //
-                // Let's look at `backend/main.py` again in my thought process...
-                // It imports `hash_pii`.
-                //
-                // I will add a new endpoint to `backend/main.py` that allows looking up by hash, 
-                // since that's what the counselor implementation logically requires.
+  const toggleConversationExpand = (convId) => {
+    const newExpanded = new Set(expandedConversations)
+    if (newExpanded.has(convId)) {
+      newExpanded.delete(convId)
+    } else {
+      newExpanded.add(convId)
+    }
+    setExpandedConversations(newExpanded)
+  }
 
-                // For now, I'll just write the frontend code assuming I'll fix the backend or it accepts something I can give.
-                // Actually, maybe I can just list the events for now.
+  const toggleCrisisEventExpand = (eventIdx) => {
+    const newExpanded = new Set(expandedCrisisEvents)
+    if (newExpanded.has(eventIdx)) {
+      newExpanded.delete(eventIdx)
+    } else {
+      newExpanded.add(eventIdx)
+    }
+    setExpandedCrisisEvents(newExpanded)
+  }
 
-                // Wait, `StudentChat` sends `session_id`.
-                // If I am the student, I know my ID.
-                // If I am the counselor, I only see the hash in the DB.
+  const handleResponseFeedback = async (convId, isPositive) => {
+    // Store feedback locally (in production, send to backend)
+    setResponseFeedback(prev => ({
+      ...prev,
+      [convId]: isPositive ? 'positive' : 'negative'
+    }))
+    
+    // TODO: Send to backend for model fine-tuning
+    console.log(`Feedback for conversation ${convId}: ${isPositive ? 'positive' : 'negative'}`)
+  }
 
-                // Let's write the component to just show events first.
-                // And maybe for the conversation view, I will just show the single message from the event if I can't fetch the full history.
-                // The crisis event has `risk_score`, `reasoning`, etc.
-
-            } catch (error) {
-                console.error('Error fetching conversations:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchConversations();
-    }, [selectedSession]);
-
-    // Workaround for the hash issue:
-    // I'll make a request to a new endpoint I'll add: /conversations/search?hash=...
-    // OR just modify the existing endpoint to check if the input looks like a hash?
-    // 
-    // Let's just create the component. 
-    // I'll assume for a moment that I can fetch by hash. 
-    // I'll use `conversations/${hash}` and later modify backend to support it.
-
-    const handleEventClick = async (event) => {
-        setSelectedSession(event.session_id_hash);
-        setLoading(true);
-        try {
-            // Try fetching with the hash. 
-            // Note: The backend will hash this hash again, so it won't match.
-            // This WILL fail with current backend. 
-            // But I'll modify the backend next.
-            const response = await fetch(`${API_URL}/conversations/lookup/${event.session_id_hash}`);
-            if (response.ok) {
-                const data = await response.json();
-                setConversations(data);
-            } else {
-                // If that fails (endpoint doesn't exist), try the standard one (will fail logic)
-                console.warn("Lookup endpoint failed, trying standard...");
-            }
-        } catch (e) {
-            console.error(e);
-        }
-        setLoading(false);
-    };
-
-    const getRiskColor = (level) => {
-        switch (level) {
-            case 'CRISIS': return '#dc3545';
-            case 'CAUTION': return '#ffc107';
-            case 'SAFE': return '#28a745';
-            default: return '#6c757d';
-        }
-    };
-
+  const getRiskBadge = (riskLevel) => {
+    const badges = {
+      'CRISIS': { icon: '🚨', color: '#dc3545', label: 'Crisis' },
+      'CAUTION': { icon: '⚠️', color: '#ffc107', label: 'Caution' },
+      'SAFE': { icon: '✅', color: '#28a745', label: 'Safe' }
+    }
+    const badge = badges[riskLevel] || badges['SAFE']
     return (
-        <div className="counselor-dashboard">
-            <div className="crisis-panel">
-                <h2>🚨 Crisis Events</h2>
-                {crisisEvents.length === 0 ? (
-                    <div className="no-events">No crisis events detected yet.</div>
-                ) : (
-                    <div className="crisis-list">
-                        {crisisEvents.map(event => (
-                            <div
-                                key={event.id}
-                                className="crisis-card"
-                                onClick={() => handleEventClick(event)}
-                            >
-                                <div className="crisis-header">
-                                    <span className="crisis-badge">RISK: {(event.risk_score * 100).toFixed(0)}%</span>
-                                    <span className="crisis-time">{new Date(event.detected_at).toLocaleTimeString()}</span>
-                                </div>
-                                <div className="crisis-details">
-                                    <p><strong>Patterns:</strong> {event.matched_patterns ? event.matched_patterns.join(', ') : 'None'}</p>
-                                    <div className="crisis-session">Session: {event.session_id_hash.substring(0, 8)}...</div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
+      <span className="risk-badge" style={{ backgroundColor: badge.color }}>
+        {badge.icon} {badge.label}
+      </span>
+    )
+  }
 
-            <div className="conversation-panel">
-                <h2>💬 Conversation History</h2>
-                {!selectedSession ? (
-                    <div className="no-selection">
-                        <p>Select a crisis event to view the conversation details.</p>
-                    </div>
-                ) : loading ? (
-                    <div className="loading">Loading details...</div>
-                ) : (
-                    <div className="conversation-details">
-                        <div className="session-id">Session Hash: {selectedSession}</div>
-                        <div className="conversation-list">
-                            {conversations.length === 0 ? (
-                                <p>No history found (or backend lookup failed).</p>
-                            ) : (
-                                conversations.map(conv => (
-                                    <div key={conv.id} className="conversation-card">
-                                        <div className="conv-header">
-                                            <span
-                                                className="risk-badge"
-                                                style={{ backgroundColor: getRiskColor(conv.risk_level) }}
-                                            >
-                                                {conv.risk_level}
-                                            </span>
-                                            <span className="conv-time">{new Date(conv.created_at).toLocaleString()}</span>
-                                        </div>
+  const formatDate = (dateString) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now - date
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
 
-                                        <div className="conv-message">
-                                            <strong>Student:</strong>
-                                            <p>{conv.message}</p>
-                                        </div>
+    if (diffMins < 60) return `${diffMins}m ago`
+    if (diffHours < 24) return `${diffHours}h ago`
+    if (diffDays < 7) return `${diffDays}d ago`
+    return date.toLocaleDateString()
+  }
 
-                                        <div className="conv-response">
-                                            <strong>PsyFlo:</strong>
-                                            <p>{conv.response}</p>
-                                        </div>
-
-                                        <div className="conv-analysis">
-                                            <h4>Analysis Details</h4>
-
-                                            <div className="scores">
-                                                <div className="score-item">
-                                                    <span>Total</span>
-                                                    <strong>{(conv.risk_score * 100).toFixed(1)}%</strong>
-                                                </div>
-                                                <div className="score-item">
-                                                    <span>Regex</span>
-                                                    <strong>{(conv.regex_score * 100).toFixed(1)}%</strong>
-                                                </div>
-                                                <div className="score-item">
-                                                    <span>Semantic</span>
-                                                    <strong>{(conv.semantic_score * 100).toFixed(1)}%</strong>
-                                                </div>
-                                                <div className="score-item">
-                                                    <span>Mistral</span>
-                                                    <strong>{conv.mistral_score ? (conv.mistral_score * 100).toFixed(1) + '%' : 'N/A'}</strong>
-                                                </div>
-                                            </div>
-
-                                            {conv.matched_patterns && conv.matched_patterns.length > 0 && (
-                                                <div className="patterns">
-                                                    <strong>Matched Patterns:</strong>
-                                                    {conv.matched_patterns.join(', ')}
-                                                </div>
-                                            )}
-
-                                            <details className="reasoning-details">
-                                                <summary>View Reasoning Trace</summary>
-                                                <pre>{conv.reasoning}</pre>
-                                            </details>
-
-                                            <div className="performance">
-                                                <span>Latency: {conv.latency_ms.toFixed(0)}ms</span>
-                                                {conv.timeout_occurred && <span className="timeout-badge">TIMEOUT</span>}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </div>
-                )}
-            </div>
+  return (
+    <div className="counselor-dashboard">
+      <div className="dashboard-header">
+        <div>
+          <h1>Counselor Dashboard</h1>
+          <p className="dashboard-subtitle">Monitor student wellbeing and provide feedback</p>
         </div>
-    );
-};
+        <div className="view-toggle">
+          <button 
+            className={view === 'students' ? 'active' : ''}
+            onClick={() => setView('students')}
+          >
+            📚 Students ({students.length})
+          </button>
+          <button 
+            className={view === 'crisis' ? 'active' : ''}
+            onClick={() => setView('crisis')}
+          >
+            🚨 Crisis Alerts ({crisisEvents.length})
+          </button>
+        </div>
+      </div>
 
-export default CounselorDashboard;
+      {view === 'students' && (
+        <div className="students-view">
+          <div className="students-list">
+            <h2>Student Roster</h2>
+            {loading && !selectedStudent && <p className="loading-text">Loading students...</p>}
+            {!loading && students.length === 0 && (
+              <p className="empty-state">No students registered yet.</p>
+            )}
+            {students.map((student) => (
+              <div
+                key={student.id}
+                className={`student-card ${selectedStudent?.id === student.id ? 'selected' : ''}`}
+                onClick={() => selectStudent(student)}
+              >
+                <div className="student-header">
+                  <div className="student-avatar">
+                    {(student.preferred_name || student.name).charAt(0).toUpperCase()}
+                  </div>
+                  <div className="student-info">
+                    <h3>{student.preferred_name || student.name}</h3>
+                    <p className="student-meta">
+                      {student.grade && `Grade ${student.grade} • `}
+                      {student.total_conversations} conversation{student.total_conversations !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                </div>
+                <div className="student-status">
+                  <span className="last-active">
+                    {formatDate(student.last_active)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {selectedStudent && (
+            <div className="student-detail">
+              <div className="detail-header">
+                <h2>{selectedStudent.preferred_name || selectedStudent.name}</h2>
+                <button onClick={() => setSelectedStudent(null)}>✕ Close</button>
+              </div>
+
+              {/* Active Themes */}
+              {studentThemes.length > 0 && (
+                <div className="themes-section">
+                  <h3>🎯 Active Themes</h3>
+                  <div className="themes-list">
+                    {studentThemes.map((theme) => (
+                      <div key={theme.id} className="theme-card">
+                        <div className="theme-header">
+                          <strong>{theme.theme.replace(/_/g, ' ')}</strong>
+                          <span className="mention-count">{theme.mention_count}x</span>
+                        </div>
+                        {theme.description && (
+                          <p className="theme-description">{theme.description}</p>
+                        )}
+                        <p className="theme-meta">
+                          Last mentioned: {formatDate(theme.last_mentioned)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Conversation History */}
+              <div className="conversations-section">
+                <div className="section-header">
+                  <h3>💬 Conversation History</h3>
+                  <p className="section-note">
+                    Use 👍 👎 to provide feedback on Connor's responses for model improvement
+                  </p>
+                </div>
+                {loading && <p className="loading-text">Loading conversations...</p>}
+                {!loading && studentConversations.length === 0 && (
+                  <p className="empty-state">No conversations yet.</p>
+                )}
+                {!loading && studentConversations.length > 0 && (
+                  <div className="conversations-list">
+                    {studentConversations.map((conv) => (
+                      <div key={conv.id} className="conversation-card">
+                        <div className="conv-header">
+                          <div className="conv-header-left">
+                            <span className="conv-date">
+                              {new Date(conv.created_at).toLocaleString()}
+                            </span>
+                            <button 
+                              className="expand-btn"
+                              onClick={() => toggleConversationExpand(conv.id)}
+                            >
+                              {expandedConversations.has(conv.id) ? '▼ Collapse' : '▶ Expand Details'}
+                            </button>
+                          </div>
+                          {getRiskBadge(conv.risk_level)}
+                        </div>
+                        
+                        <div className="conv-message">
+                          <strong>👤 Student:</strong>
+                          <p>{conv.message}</p>
+                        </div>
+                        
+                        <div className="conv-response">
+                          <div className="response-header">
+                            <strong>🤖 Connor's Response:</strong>
+                            <div className="feedback-buttons">
+                              <button
+                                className={`feedback-btn ${responseFeedback[conv.id] === 'positive' ? 'active positive' : ''}`}
+                                onClick={() => handleResponseFeedback(conv.id, true)}
+                                title="Good response"
+                              >
+                                👍
+                              </button>
+                              <button
+                                className={`feedback-btn ${responseFeedback[conv.id] === 'negative' ? 'active negative' : ''}`}
+                                onClick={() => handleResponseFeedback(conv.id, false)}
+                                title="Needs improvement"
+                              >
+                                👎
+                              </button>
+                            </div>
+                          </div>
+                          <p>{conv.response}</p>
+                          {responseFeedback[conv.id] && (
+                            <div className="feedback-note">
+                              {responseFeedback[conv.id] === 'positive' 
+                                ? '✓ Marked as good response for training' 
+                                : '✗ Marked for review and model improvement'}
+                            </div>
+                          )}
+                        </div>
+
+                        {expandedConversations.has(conv.id) && (
+                          <div className="conv-details">
+                            {/* Diagnostic Analysis */}
+                            <div className="diagnostic-section">
+                              <h4>🔬 Diagnostic Analysis</h4>
+                              <div className="layer-scores">
+                                <div className="layer-score-card">
+                                  <div className="layer-name">Regex Layer</div>
+                                  <div className="layer-score">{(conv.regex_score * 100).toFixed(1)}%</div>
+                                  <div className="layer-latency">{conv.latency_ms ? `<${conv.latency_ms}ms` : 'N/A'}</div>
+                                </div>
+                                <div className="layer-score-card">
+                                  <div className="layer-name">Semantic Layer</div>
+                                  <div className="layer-score">{(conv.semantic_score * 100).toFixed(1)}%</div>
+                                  <div className="layer-latency">Embedding-based</div>
+                                </div>
+                                {conv.mistral_score !== null && (
+                                  <div className="layer-score-card">
+                                    <div className="layer-name">Mistral Layer</div>
+                                    <div className="layer-score">{(conv.mistral_score * 100).toFixed(1)}%</div>
+                                    <div className="layer-latency">LLM Analysis</div>
+                                  </div>
+                                )}
+                                {conv.timeout_occurred && (
+                                  <div className="layer-score-card timeout">
+                                    <div className="layer-name">⚠️ Timeout</div>
+                                    <div className="layer-score">Degraded</div>
+                                    <div className="layer-latency">Fallback used</div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Reasoning Trace */}
+                            {conv.reasoning && (
+                              <div className="reasoning-section">
+                                <h4>🧠 AI Reasoning</h4>
+                                <div className="reasoning-text">{conv.reasoning}</div>
+                              </div>
+                            )}
+
+                            {/* Matched Patterns */}
+                            {conv.matched_patterns.length > 0 && (
+                              <div className="conv-patterns">
+                                <strong>🔍 Detected Patterns:</strong>
+                                <div className="pattern-tags">
+                                  {conv.matched_patterns.map((pattern, idx) => (
+                                    <span key={idx} className="pattern-tag">{pattern}</span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Metadata */}
+                            <div className="conv-metadata">
+                              <div className="metadata-item">
+                                <span className="metadata-label">Session ID:</span>
+                                <span className="metadata-value code">{conv.session_id_hash || 'N/A'}</span>
+                              </div>
+                              <div className="metadata-item">
+                                <span className="metadata-label">Conversation #:</span>
+                                <span className="metadata-value">{conv.id}</span>
+                              </div>
+                              <div className="metadata-item">
+                                <span className="metadata-label">Final Risk Score:</span>
+                                <span className="metadata-value">{(conv.risk_score * 100).toFixed(1)}%</span>
+                              </div>
+                              <div className="metadata-item">
+                                <span className="metadata-label">Processing Time:</span>
+                                <span className="metadata-value">{conv.latency_ms}ms</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {view === 'crisis' && (
+        <div className="crisis-events">
+          <div className="section-header">
+            <h2>🚨 Recent Crisis Events</h2>
+            <p className="section-note">Click on any event to view full details</p>
+          </div>
+          {crisisEvents.length === 0 && (
+            <p className="empty-state">No crisis events recorded yet.</p>
+          )}
+          {crisisEvents.length > 0 && (
+            <div className="events-list">
+              {crisisEvents.map((event, idx) => (
+                <div key={idx} className="event-card">
+                  <div className="event-header" onClick={() => toggleCrisisEventExpand(idx)}>
+                    <div className="event-header-left">
+                      <span className="event-icon">🚨</span>
+                      <div>
+                        <span className="event-time">
+                          {new Date(event.detected_at).toLocaleString()}
+                        </span>
+                        <span className="event-risk">
+                          Risk Score: {(event.risk_score * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                    <button className="expand-btn">
+                      {expandedCrisisEvents.has(idx) ? '▼ Collapse' : '▶ View Details'}
+                    </button>
+                  </div>
+                  
+                  {expandedCrisisEvents.has(idx) && (
+                    <div className="event-details">
+                      {/* Conversation Context */}
+                      {event.conversation ? (
+                        <div className="detail-section conversation-context">
+                          <h4>💬 Conversation That Triggered Alert</h4>
+                          <div className="crisis-conversation">
+                            <div className="crisis-message">
+                              <strong>👤 Student Message:</strong>
+                              <p>{event.conversation.message || 'No message available'}</p>
+                            </div>
+                            <div className="crisis-response">
+                              <strong>🤖 Connor's Response:</strong>
+                              <p>{event.conversation.response || 'No response available'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="detail-section">
+                          <p className="loading-text">Loading conversation details...</p>
+                        </div>
+                      )}
+
+                      {/* Diagnostic Analysis */}
+                      <div className="detail-section">
+                        <h4>🔬 Multi-Layer Analysis</h4>
+                        {event.conversation ? (
+                          <div className="layer-scores">
+                            <div className="layer-score-card">
+                              <div className="layer-name">Regex Layer</div>
+                              <div className="layer-score crisis">
+                                {event.conversation.regex_score != null 
+                                  ? (event.conversation.regex_score * 100).toFixed(1) + '%'
+                                  : 'N/A'}
+                              </div>
+                              <div className="layer-latency">Pattern matching</div>
+                            </div>
+                            <div className="layer-score-card">
+                              <div className="layer-name">Semantic Layer</div>
+                              <div className="layer-score crisis">
+                                {event.conversation.semantic_score != null
+                                  ? (event.conversation.semantic_score * 100).toFixed(1) + '%'
+                                  : 'N/A'}
+                              </div>
+                              <div className="layer-latency">Embedding similarity</div>
+                            </div>
+                            {event.conversation.mistral_score != null && (
+                              <div className="layer-score-card">
+                                <div className="layer-name">Mistral Layer</div>
+                                <div className="layer-score crisis">
+                                  {(event.conversation.mistral_score * 100).toFixed(1)}%
+                                </div>
+                                <div className="layer-latency">LLM reasoning</div>
+                              </div>
+                            )}
+                            <div className="layer-score-card final">
+                              <div className="layer-name">Final Score</div>
+                              <div className="layer-score crisis">
+                                {(event.risk_score * 100).toFixed(1)}%
+                              </div>
+                              <div className="layer-latency">Consensus result</div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="detail-grid">
+                            <div className="detail-item">
+                              <span className="detail-label">Risk Score:</span>
+                              <span className="detail-value crisis-level">
+                                {(event.risk_score * 100).toFixed(1)}%
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* AI Reasoning */}
+                      {(event.reasoning || event.conversation?.reasoning) && (
+                        <div className="detail-section">
+                          <h4>🧠 AI Reasoning Trace</h4>
+                          <div className="reasoning-box">
+                            {event.reasoning || event.conversation?.reasoning}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Matched Patterns */}
+                      {event.matched_patterns && event.matched_patterns.length > 0 && (
+                        <div className="detail-section">
+                          <h4>🔍 Crisis Patterns Detected</h4>
+                          <div className="pattern-tags">
+                            {event.matched_patterns.map((pattern, pidx) => (
+                              <span key={pidx} className="pattern-tag crisis">{pattern}</span>
+                            ))}
+                          </div>
+                          <p className="pattern-explanation">
+                            These patterns triggered the crisis alert based on our safety protocols.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Performance Metrics */}
+                      {event.conversation && (
+                        <div className="detail-section">
+                          <h4>⚡ Performance Metrics</h4>
+                          <div className="detail-grid">
+                            <div className="detail-item">
+                              <span className="detail-label">Detection Latency:</span>
+                              <span className="detail-value">
+                                {event.conversation.latency_ms != null 
+                                  ? event.conversation.latency_ms + 'ms'
+                                  : 'N/A'}
+                              </span>
+                            </div>
+                            <div className="detail-item">
+                              <span className="detail-label">Timeout Occurred:</span>
+                              <span className="detail-value">
+                                {event.conversation.timeout_occurred ? 'Yes (Degraded)' : 'No'}
+                              </span>
+                            </div>
+                            <div className="detail-item">
+                              <span className="detail-label">Session Hash:</span>
+                              <span className="detail-value code">{event.session_id_hash}</span>
+                            </div>
+                            <div className="detail-item">
+                              <span className="detail-label">Conversation ID:</span>
+                              <span className="detail-value">{event.conversation_id}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Recommended Actions */}
+                      <div className="detail-section">
+                        <h4>⚡ Recommended Actions</h4>
+                        <ul className="action-list">
+                          <li className="action-completed">✓ Immediate counselor notification sent</li>
+                          <li className="action-completed">✓ Crisis resources displayed to student</li>
+                          <li className="action-completed">✓ Event logged to immutable audit trail</li>
+                          <li className="action-pending">→ Follow up with student within 24 hours</li>
+                          <li className="action-pending">→ Document intervention in student record</li>
+                          <li className="action-pending">→ Assess need for parent/guardian notification</li>
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default CounselorDashboard

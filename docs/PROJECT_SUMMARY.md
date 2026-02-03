@@ -6,7 +6,7 @@
 
 ## Project Overview
 
-**PsyFlo (Feelwell)** is a mission-critical, AI-driven mental health triage platform designed specifically for school districts and youth organizations. The system addresses the growing disparity between high-volume student emotional needs and limited professional counseling resources.
+**Beacon** is a mission-critical, AI-driven mental health triage platform designed specifically for school districts and youth organizations. The system addresses the growing disparity between high-volume student emotional needs and limited professional counseling resources.
 
 ### Core Value Proposition
 

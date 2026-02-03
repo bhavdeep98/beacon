@@ -1,6 +1,6 @@
 # Evaluation Datasets
 
-This directory contains datasets for evaluating the PsyFlo safety system.
+This directory contains datasets for evaluating the Beacon safety system.
 
 ## MentalChat16K
 

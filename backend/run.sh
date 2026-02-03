@@ -1,7 +1,7 @@
 #!/bin/bash
 # Run FastAPI backend
 
-echo "Starting PsyFlo Backend..."
+echo "Starting Beacon Backend..."
 
 # Check if virtual environment exists
 if [ ! -d "venv" ]; then

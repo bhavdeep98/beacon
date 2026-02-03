@@ -2,7 +2,7 @@
 inclusion: always
 ---
 
-# PsyFlo Coding Standards
+# Beacon Coding Standards
 
 These standards ensure code safety, maintainability, and compliance with project tenets.
 
@@ -213,17 +213,17 @@ async def test_end_to_end_crisis_flow():
 ### Custom Exceptions
 ```python
 # exceptions.py
-class PsyFloException(Exception):
-    """Base exception for all PsyFlo errors."""
+class BeaconException(Exception):
+    """Base exception for all Beacon errors."""
     def __init__(self, message: str, context: dict = None):
         super().__init__(message)
         self.context = context or {}
 
-class SafetyServiceError(PsyFloException):
+class SafetyServiceError(BeaconException):
     """Crisis detection service error."""
     pass
 
-class NotificationError(PsyFloException):
+class NotificationError(BeaconException):
     """Counselor notification error."""
     pass
 ```

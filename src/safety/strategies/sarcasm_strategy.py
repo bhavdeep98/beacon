@@ -92,7 +92,7 @@ class SarcasmFilterStrategy(DetectionStrategy):
         r'\bdying of (boredom|laughter)',
         
         # Parental/authority hyperbole
-        r'\b(parents|mom|dad|teacher).{0,20}(kill|murder)',
+        r'\b(parents|mom|dad|mother|father|teacher).{0,20}(kill|murder)',
         
         # Tiredness hyperbole
         r'\bdead tired\b',

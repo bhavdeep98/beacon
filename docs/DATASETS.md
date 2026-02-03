@@ -1,6 +1,6 @@
-# PsyFlo Evaluation Datasets
+# Beacon Evaluation Datasets
 
-This document catalogs all datasets researched, downloaded, and used for evaluating the PsyFlo crisis detection system.
+This document catalogs all datasets researched, downloaded, and used for evaluating the Beacon crisis detection system.
 
 **Last Updated**: 2026-01-21
 
@@ -8,7 +8,7 @@ This document catalogs all datasets researched, downloaded, and used for evaluat
 
 ## Overview
 
-PsyFlo requires diverse, high-quality datasets to validate crisis detection accuracy across:
+Beacon requires diverse, high-quality datasets to validate crisis detection accuracy across:
 - Explicit crisis language
 - Coded/obfuscated language
 - Teenage vernacular and hyperbole

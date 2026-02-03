@@ -2,7 +2,7 @@
 inclusion: always
 ---
 
-# PsyFlo Glossary
+# Beacon Glossary
 
 Quick reference for terminology used across design documents, code, and compliance materials.
 
@@ -65,7 +65,7 @@ Access permissions based on user roles:
 
 ### K-Anonymity
 Privacy technique ensuring each person is indistinguishable from at least k-1 others.
-- **PsyFlo Rule: k ≥ 5** (minimum group size of 5)
+- **Beacon Rule: k ≥ 5** (minimum group size of 5)
 - Analytics service suppresses any report where group size < 5
 
 ### Hash Function (SHA-256)
@@ -82,7 +82,7 @@ logger.info(f"Student {hash_pii(student_id)} logged in")
 
 ### Triage
 Process of determining priority based on severity.
-- **PsyFlo Context**: AI assesses conversation → Crisis (notify immediately), Caution (weekly check-in), Safe (no action)
+- **Beacon Context**: AI assesses conversation → Crisis (notify immediately), Caution (weekly check-in), Safe (no action)
 - **Critical Distinction**: Triage is NOT diagnosis
 
 ### PHQ-9 (Patient Health Questionnaire-9)
@@ -126,7 +126,7 @@ Deliberate injury to oneself (cutting, burning, hitting).
 
 ### Microservices
 Application built as collection of small, independent services.
-- PsyFlo Services: Chat, Safety, Observer, Crisis Engine, LLM, Auth, Notification, Analytics, Audit
+- Beacon Services: Chat, Safety, Observer, Crisis Engine, LLM, Auth, Notification, Analytics, Audit
 - Crisis detection works even if Chat Service crashes
 
 ### Event-Driven Architecture
@@ -186,7 +186,7 @@ System says "crisis" when actually safe (false alarm).
 
 ### Recall (Sensitivity)
 % of actual crises that system detected.
-- **PsyFlo Target: >99% recall**
+- **Beacon Target: >99% recall**
 
 ### Precision
 % of crisis alerts that were actual crises.
