@@ -1,7 +1,3 @@
----
-inclusion: always
----
-
 # Beacon Project Tenets
 
 These tenets are the foundational principles that guide all technical and product decisions for the Beacon mental health AI triage system.

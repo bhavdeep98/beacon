@@ -82,3 +82,6 @@ package-lock.json
 
 # Model files
 Modelfile
+
+# Kiro IDE folder
+.kiro/
