@@ -479,11 +479,11 @@ python evaluation/benchmark_runner.py --dataset all
 - **[Decision Log](docs/DECISION_LOG.md)** - Architecture decision records (ADRs)
 
 ### 📖 Standards & Principles
-- **[Project Tenets](.kiro/steering/00-project-tenets.md)** - 15 foundational principles
-- **[Glossary](.kiro/steering/01-glossary.md)** - Terminology reference (FERPA, COPPA, PHQ-9, etc.)
-- **[Failure Modes](.kiro/steering/02-failure-modes-mitigation.md)** - Risk mitigation strategies
-- **[Coding Standards](.kiro/steering/03-coding-standards.md)** - Safety-critical code requirements
-- **[Design Patterns](.kiro/steering/04-design-patterns.md)** - Architectural patterns and anti-patterns
+- **[Project Tenets](docs/PROJECT_TENETS.md)** - 15 foundational principles
+- **[Glossary](docs/GLOSSARY.md)** - Terminology reference (FERPA, COPPA, PHQ-9, etc.)
+- **[Failure Modes](docs/FAILURE_MODES.md)** - Risk mitigation strategies
+- **[Coding Standards](docs/CODING_STANDARDS.md)** - Safety-critical code requirements
+- **[Design Patterns](docs/DESIGN_PATTERNS.md)** - Architectural patterns and anti-patterns
 
 ### 📊 Datasets & Evaluation
 - **[Datasets](docs/DATASETS.md)** - MentalChat16K, Hard Crisis, and custom test sets
@@ -503,7 +503,7 @@ Beacon follows 15 core tenets that guide all technical decisions:
 4. **Fail Loud, Fail Early** - Never silently swallow errors
 5. **Performance Is a Safety Feature** - Crisis detection <50ms, student in crisis can't wait
 
-See [Project Tenets](.kiro/steering/00-project-tenets.md) for complete list.
+See [Project Tenets](docs/PROJECT_TENETS.md) for complete list.
 
 ### The 60-Second Litmus Test
 
@@ -660,14 +660,14 @@ We welcome contributions! This is a safety-critical system where code quality di
 **Before contributing, please:**
 1. Read our [Contributing Guidelines](CONTRIBUTING.md)
 2. Review the [Code of Conduct](CODE_OF_CONDUCT.md)
-3. Understand the [Project Tenets](.kiro/steering/00-project-tenets.md)
+3. Understand the [Project Tenets](docs/PROJECT_TENETS.md)
 
 **Quick requirements:**
 - ✅ Pass the 60-second litmus test
 - ✅ 100% test coverage for safety-critical code
 - ✅ Type hints and documentation
 - ✅ Zero PII in logs (use `hash_pii()`)
-- ✅ Follow [Coding Standards](.kiro/steering/03-coding-standards.md)
+- ✅ Follow [Coding Standards](docs/CODING_STANDARDS.md)
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines, development workflow, and PR process.
 
