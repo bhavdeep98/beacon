@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security Vulnerability
+    url: mailto:security@beacon-project.org
+    about: Report security vulnerabilities privately via email
+  - name: Documentation
+    url: https://github.com/yourusername/beacon/tree/main/docs
+    about: Read project documentation
+  - name: Discussions
+    url: https://github.com/yourusername/beacon/discussions
+    about: Ask questions and discuss ideas with the community

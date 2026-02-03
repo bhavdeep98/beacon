@@ -132,7 +132,98 @@ Student Message → [Safety | Observer | LLM] → Orchestrator → Response
 
 ## 🏗️ Architecture
 
-### Microservices Design
+### Visual Architecture Overview
+
+#### System Flow Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         User Input                              │
+│                      [Text Message]                             │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     Safety Service                              │
+│              [Multi-Layer Detection]                            │
+│                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐        │
+│  │    Regex     │  │   Semantic   │  │   Sarcasm    │        │
+│  │  Detection   │  │   Analysis   │  │    Filter    │        │
+│  │   (<10ms)    │  │  (Embedding) │  │  (92.3% acc) │        │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘        │
+│         └──────────────────┼──────────────────┘                │
+└────────────────────────────┼─────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Reasoning Module                             │
+│                 [Clinical Assessment]                           │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────┐     │
+│  │  7-Dimension Clinical Metrics Framework              │     │
+│  │  • PHQ-9 (Depression)    • GAD-7 (Anxiety)          │     │
+│  │  • C-SSRS (Suicide Risk) • Functioning              │     │
+│  │  • Sleep • Substance Use • Social Support           │     │
+│  └──────────────────────────────────────────────────────┘     │
+└────────────────────────────┼─────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   Crisis Risk Scoring                           │
+│                                                                 │
+│  Risk Level: CRISIS | CAUTION | SAFE                           │
+│  Confidence: 0.0 - 1.0                                         │
+│  Evidence: Matched patterns + reasoning trace                  │
+└────────────────────────────┼─────────────────────────────────────┘
+                             │
+                ┌────────────┴────────────┐
+                │                         │
+                ▼                         ▼
+┌──────────────────────────┐  ┌──────────────────────────┐
+│   Immediate Response     │  │  Counselor Notification  │
+│                          │  │                          │
+│  • Crisis resources      │  │  • Alert with context    │
+│  • Empathetic reply      │  │  • Conversation snippet  │
+│  • Escalation options    │  │  • Risk assessment       │
+└──────────────────────────┘  └──────────────────────────┘
+```
+
+#### Component Interaction Flow
+
+```mermaid
+graph TD
+    A[User Message] --> B{Safety Analyzer}
+    B --> C[Regex Detection]
+    B --> D[Semantic Analysis]
+    B --> E[Sarcasm Filter]
+    
+    C --> F[Risk Score Aggregation]
+    D --> F
+    E --> F
+    
+    F --> G{Crisis Detected?}
+    
+    G -->|Yes| H[Mistral Reasoner]
+    G -->|No| I[Continue Conversation]
+    
+    H --> J[Clinical Metrics Extraction]
+    J --> K[7-Dimension Assessment]
+    K --> L[Action: Escalate/Respond]
+    
+    I --> M[Generate Response]
+    
+    L --> N[Counselor Alert]
+    L --> O[Crisis Resources]
+    
+    style A fill:#e1f5ff
+    style G fill:#fff4e1
+    style H fill:#ffe1f5
+    style N fill:#ffe1e1
+    style O fill:#ffe1e1
+```
+
+### Microservices Design (Parallel Consensus Architecture)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -174,10 +265,94 @@ Student Message → [Safety | Observer | LLM] → Orchestrator → Response
     └─────────┘              └──────────────┘
 ```
 
+### Project Structure Visualization
+
+```
+psyflo-feelwell/
+│
+├── Core AI Modules
+│   ├── Safety Service (Deterministic detection)
+│   │   ├── Regex Strategy (keyword matching)
+│   │   ├── Semantic Strategy (embedding similarity)
+│   │   └── Sarcasm Filter (hyperbole detection)
+│   │
+│   ├── Reasoning Engine (Clinical assessment)
+│   │   ├── Mistral Reasoner (deep analysis)
+│   │   └── Clinical Metrics (7-dimension framework)
+│   │
+│   └── Conversation Agent (Therapeutic dialogue)
+│       ├── LangGraph orchestration
+│       └── OpenAI integration
+│
+├── Evaluation Framework
+│   ├── Benchmark suites
+│   │   ├── MentalChat16K evaluation
+│   │   └── Hard crisis dataset
+│   └── Performance metrics
+│       ├── Recall/Precision tracking
+│       └── Latency monitoring
+│
+└── Deployment
+    ├── Backend (FastAPI)
+    │   ├── REST API endpoints
+    │   ├── Database layer (SQLite/PostgreSQL)
+    │   └── Student service
+    │
+    └── Frontend (React + Vite)
+        ├── Student chat interface
+        ├── Counselor dashboard
+        └── Consensus demo
+```
+
 ### Event-Driven Resilience
 - Crisis detection works even if chat service crashes
 - "Fire alarm" architecture - highly available, independent
 - Event bus for decoupled notification, logging, and analytics
+
+### Data Flow Architecture
+
+```
+┌──────────────┐
+│   Student    │
+│   Message    │
+└──────┬───────┘
+       │
+       ▼
+┌──────────────────────────────────────────────────────┐
+│              Parallel Processing Layer               │
+│                                                      │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐ │
+│  │   Safety    │  │  Observer   │  │     LLM     │ │
+│  │  Analysis   │  │  Analysis   │  │  Response   │ │
+│  │             │  │             │  │             │ │
+│  │ • Regex     │  │ • Clinical  │  │ • Empathy   │ │
+│  │ • Semantic  │  │   Markers   │  │ • Context   │ │
+│  │ • Sarcasm   │  │ • PHQ-9     │  │ • Guidance  │ │
+│  │             │  │ • GAD-7     │  │             │ │
+│  └─────────────┘  └─────────────┘  └─────────────┘ │
+│         │                │                │         │
+└─────────┼────────────────┼────────────────┼─────────┘
+          │                │                │
+          └────────────────┼────────────────┘
+                           │
+                           ▼
+                  ┌────────────────┐
+                  │   Consensus    │
+                  │  Orchestrator  │
+                  └────────┬───────┘
+                           │
+              ┌────────────┴────────────┐
+              │                         │
+              ▼                         ▼
+     ┌────────────────┐        ┌───────────────┐
+     │ Crisis Alert   │        │   Response    │
+     │                │        │   Generation  │
+     │ • Counselor    │        │               │
+     │   Notification │        │ • Student     │
+     │ • Evidence     │        │   Message     │
+     │ • Risk Score   │        │ • Resources   │
+     └────────────────┘        └───────────────┘
+```
 
 ---
 
@@ -480,15 +655,21 @@ pytest tests/test_safety_service.py -v
 
 ## 🤝 Contributing
 
-This is a safety-critical system. All contributions must:
+We welcome contributions! This is a safety-critical system where code quality directly impacts student safety.
 
-1. Pass the 60-second litmus test
-2. Include comprehensive tests (100% coverage for safety code)
-3. Follow coding standards (see [.kiro/steering/03-coding-standards.md](.kiro/steering/03-coding-standards.md))
-4. Include type hints and documentation
-5. Never include PII in logs or test data
+**Before contributing, please:**
+1. Read our [Contributing Guidelines](CONTRIBUTING.md)
+2. Review the [Code of Conduct](CODE_OF_CONDUCT.md)
+3. Understand the [Project Tenets](.kiro/steering/00-project-tenets.md)
 
-See [Design Patterns](.kiro/steering/04-design-patterns.md) for architectural guidance.
+**Quick requirements:**
+- ✅ Pass the 60-second litmus test
+- ✅ 100% test coverage for safety-critical code
+- ✅ Type hints and documentation
+- ✅ Zero PII in logs (use `hash_pii()`)
+- ✅ Follow [Coding Standards](.kiro/steering/03-coding-standards.md)
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines, development workflow, and PR process.
 
 ---
 
